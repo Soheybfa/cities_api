@@ -1,8 +1,5 @@
-"""
-Fast City Search API with Flask + Redis
-"""
-
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import redis
 import json
 import sys
@@ -10,6 +7,7 @@ import os
 import time
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Redis connection with environment variables for Docker
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
@@ -47,11 +45,28 @@ NAME_INDEX_PREFIX = "name:"
 SEARCH_PREFIX = "search:"
 
 def load_cities_to_redis(json_file='cities.json'):
-    """Load cities from JSON into Redis with multiple indexes"""
+    """Load cities from JSON/JSONL into Redis with multiple indexes"""
     print("Loading cities into Redis...")
     
+    cities = []
     with open(json_file, 'r') as f:
-        cities = json.load(f)
+        # Try to load as JSON array first
+        try:
+            f.seek(0)
+            cities = json.load(f)
+            print("Loaded as JSON array")
+        except json.JSONDecodeError:
+            # If that fails, treat as JSONL (one JSON object per line)
+            print("Loading as JSONL format (one object per line)...")
+            f.seek(0)
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if line:
+                    try:
+                        cities.append(json.loads(line))
+                    except json.JSONDecodeError as e:
+                        print(f"⚠️  Skipping invalid JSON on line {line_num}: {e}")
+                        continue
     
     pipe = redis_client.pipeline()
     batch_size = 1000
