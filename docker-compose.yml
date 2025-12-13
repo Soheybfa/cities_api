@@ -9,12 +9,15 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+    # This was causing a system crash, and can't recover afterwards, this should fix it
+    command: redis-server --appendonly yes  --save 60 1000 --maxmemory 512mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 3
+    networks:
+      - city-network
 
   api:
     build: .
@@ -34,8 +37,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - city-network
 
-  # Data loader - runs once to populate Redis
+  # runs once to populate Redis
   loader:
     build: .
     container_name: city-loader
@@ -47,6 +52,13 @@ services:
       - REDIS_PORT=6379
     command: python app.py load
     restart: "no"
+    networks:
+      - city-network
 
 volumes:
   redis_data:
+
+# Hoping this part would fix the external connections that can be corrupting the data
+networks:
+  city-network:
+    driver: bridge

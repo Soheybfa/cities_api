@@ -7,7 +7,7 @@ import os
 import time
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)  # Enable CORS for all routes as it was causing the external websites to not connect
 
 # Redis connection with environment variables for Docker
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
@@ -152,19 +152,6 @@ def search():
         'count': len(results),
         'results': results
     })
-
-@app.route('/city/<int:city_id>')
-def get_city(city_id):
-    """
-    Get city by ID
-    Usage: /city/1796236
-    """
-    city_data = redis_client.get(f"{CITY_PREFIX}{city_id}")
-    
-    if not city_data:
-        return jsonify({'error': 'City not found'}), 404
-    
-    return jsonify(json.loads(city_data))
 
 @app.route('/autocomplete')
 def autocomplete():
