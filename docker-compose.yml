@@ -1,15 +1,12 @@
-version: '3.8'
-
 services:
   redis:
     image: redis:7-alpine
     container_name: city-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6379"
     volumes:
       - redis_data:/data
-    # This was causing a system crash, and can't recover afterwards, this should fix it
     command: redis-server --appendonly yes  --save 60 1000 --maxmemory 512mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -24,7 +21,7 @@ services:
     container_name: city-api
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "5000"
     depends_on:
       redis:
         condition: service_healthy
